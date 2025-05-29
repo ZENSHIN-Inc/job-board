@@ -1,11 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { supabase } from '@/app/lib/supabase';
+import { useRouter } from 'next/navigation'; // 追加
 
 const Page = () => {
   const [search, setSearch] = useState('');
   const [showDetail, setShowDetail] = useState(false);
   const [category, setCategory] = useState<"skill" | "position" | "area">("skill");
+  const [showAll, setShowAll] = useState(false);
+  const [user, setUser] = useState<any>(null); // ログイン中ユーザー
+  const router = useRouter(); // 追加
 
   const options = {
     skill: ['Unity', 'XD', 'Figma', 'illustrator', 'Photoshop', 'GraphQL', 'Jenkins', 'bootstrap', 'UI/UX', 'Apache Kafka', 'Apache Camel'],
@@ -13,13 +19,45 @@ const Page = () => {
     area: ['東京', '大阪', '名古屋', '福岡', '札幌', 'リモート', '地方'],
   };
 
+  const displayItems = showAll ? options[category] : options[category].slice(0, 6);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (data?.user) {
+        setUser(data.user);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    router.refresh(); // 状態を再読み込み
+  };
+
   return (
     <main className="max-w-[1200px] mx-auto px-4">
       <header className="flex justify-between items-center py-3">
         <div className="text-lg font-semibold">ZENSHIN Freelance</div>
         <div className="space-x-4 text-sm">
-          <a href="#" className="hover:underline">新規登録</a>
-          <a href="#" className="hover:underline">ログイン</a>
+          {user ? (
+            <>
+              <span className="text-teal-600">{user.email}</span>
+              <button
+                onClick={handleLogout}
+                className="text-red-500 hover:underline ml-2"
+              >
+                ログアウト
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/signup" className="hover:underline">新規登録</Link>
+              <Link href="/login" className="hover:underline">ログイン</Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -42,53 +80,53 @@ const Page = () => {
         )}
       </section>
 
-    <section className="text-center mb-8">
-      {/* カテゴリ切り替えボタン */}
-      <div className="flex justify-center gap-4 mb-4 text-sm">
-        <button
-          onClick={() => setCategory("skill")}
-          className={category === "skill" ? "border-b-2 border-teal-500" : "text-gray-500"}
-        >
-          スキルでさがす
-        </button>
-        <button
-          onClick={() => setCategory("position")}
-          className={category === "position" ? "border-b-2 border-teal-500" : "text-gray-500"}
-        >
-          ポジションでさがす
-        </button>
-        <button
-          onClick={() => setCategory("area")}
-          className={category === "area" ? "border-b-2 border-teal-500" : "text-gray-500"}
-        >
-          エリアでさがす
-        </button>
-      </div>
+      <section className="text-center mb-8">
+        {/* カテゴリ切り替えボタン */}
+        <div className="flex justify-center gap-4 mb-4 text-sm">
+          {(["skill", "position", "area"] as const).map((key) => (
+            <button
+              key={key}
+              onClick={() => {
+                setCategory(key);
+                setShowAll(false);
+              }}
+              className={category === key ? "border-b-2 border-teal-500" : "text-gray-500"}
+            >
+              {key === "skill" ? "スキルでさがす" : key === "position" ? "ポジションでさがす" : "エリアでさがす"}
+            </button>
+          ))}
+        </div>
 
-      {/* 選択肢のリスト */}
-      <div className="flex flex-wrap gap-3 justify-center mb-6 text-sm">
-        {options[category].map((item) => (
-          <label key={item} className="flex items-center space-x-1">
-            <input type="checkbox" />
-            <span>{item}</span>
-          </label>
-        ))}
-        <a href="#" className="text-blue-500">…もっと見る</a>
-      </div>
+        {/* 選択肢のリスト */}
+        <div className="flex flex-wrap gap-3 justify-center mb-6 text-sm">
+          {displayItems.map((item) => (
+            <label key={item} className="flex items-center space-x-1">
+              <input type="checkbox" />
+              <span>{item}</span>
+            </label>
+          ))}
+          {options[category].length > 6 && (
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className="text-blue-500 underline"
+            >
+              {showAll ? "閉じる" : "…もっと見る"}
+            </button>
+          )}
+        </div>
 
-      {/* 検索フォーム */}
-      <div className="flex justify-center mb-8">
-        <input
-          type="text"
-          placeholder="PHP JavaScript"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border border-gray-300 px-3 py-2 rounded-l"
-        />
-        <button className="bg-teal-500 text-white px-4 rounded-r">検索</button>
-      </div>
-    </section>
-
+        {/* 検索フォーム */}
+        <div className="flex justify-center mb-8">
+          <input
+            type="text"
+            placeholder="PHP JavaScript"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="border border-gray-300 px-3 py-2 rounded-l"
+          />
+          <button className="bg-teal-500 text-white px-4 rounded-r">検索</button>
+        </div>
+      </section>
 
       <div className="text-sm mb-4">案件数：604件</div>
 
