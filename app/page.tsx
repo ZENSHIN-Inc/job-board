@@ -78,7 +78,7 @@ const Page = () => {
         </header>
 
         <section className="text-center mb-4">
-          <h1 className="text-2xl font-semibold text-indigo-500 mb-2">フリーランスエンジニアのための案件掲示板</h1>
+          <h1 className="text-2xl font-semibold text-indigo-500 mb-2">フリーランスエンジニア・PMのための案件掲示板</h1>
             <div className="max-w-screen-xl mx-auto px-4 py-3 text-grey-500 md:px-8 flex flex-col items-center text-center">
               <div className="flex items-center gap-x-4 bg-indigo-200 rounded-lg px-2">
                 <div className="w-8 h-8 flex-none rounded-lg bg-indigo-400 flex items-center justify-center">
@@ -159,7 +159,7 @@ const Page = () => {
               </div>
 
               {/* 検索ボタン */}
-              <button className="ml-3 bg-indigo-400 text-white px-4 py-1 rounded">
+              <button className="ml-3 bg-indigo-500 text-white px-4 py-1 rounded hover:bg-indigo-600">
                 検索
               </button>
             </div>
@@ -206,6 +206,9 @@ const Page = () => {
             { title: 'PHP開発案件', reward: '〜65万', skill: ['PHP', 'MySQL'] },
             { title: '中学校・高校向け授業管理システムの開発', reward: '〜60万', skill: ['PHP', 'SQL'] },
             { title: 'お客様向けサービスのPOSシステムのインフラ構築支援', reward: '〜65万', skill: ['PHP'] },
+            { title: 'PHP開発案件', reward: '〜65万', skill: ['PHP', 'MySQL'] },
+            { title: '中学校・高校向け授業管理システムの開発', reward: '〜60万', skill: ['PHP', 'SQL'] },
+            { title: 'お客様向けサービスのPOSシステムのインフラ構築支援', reward: '〜65万', skill: ['PHP'] },
           ].map((job, idx) => (
             <div key={idx} className="border p-4 rounded-lg shadow-sm bg-white">
               <h3 className="font-semibold text-base mb-1">{job.title}</h3>
@@ -229,8 +232,8 @@ const Page = () => {
           <span className="px-3">…</span>
           <button className="px-3 py-1 border">100</button>
         </div>
-        <footer>
-
+        <footer className="flex justify-between items-center py-3">
+          <div></div>
         </footer>
       </div>
     </main>
