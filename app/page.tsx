@@ -1,17 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/app/lib/supabase';
 import { useRouter } from 'next/navigation'; // 追加
 
 const Page = () => {
   const [search, setSearch] = useState('');
-  const [showDetail, setShowDetail] = useState(false);
   const [category, setCategory] = useState<"skill" | "position" | "area" | "price">("skill");
   const [showAll, setShowAll] = useState(false);
   const [user, setUser] = useState<any>(null); // ログイン中ユーザー
   const router = useRouter(); // 追加
+  const ref = useRef<HTMLDivElement>(null); // ← 選択ボックスのref
 
   const options = {
     skill: ['Unity', 'XD', 'Figma', 'illustrator', 'Photoshop', 'GraphQL', 'Jenkins', 'bootstrap', 'UI/UX', 'Apache Kafka', 'Apache Camel'],
@@ -19,6 +19,18 @@ const Page = () => {
     area: ['東京', '大阪', '名古屋', '福岡', '札幌', 'リモート', 'その他'],
     price: ['50万～', '60万～', '70万～', '80万～', '90万～', '100万～']
   };
+  
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setShowAll(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const displayItems = showAll
   ? options[category]
@@ -68,7 +80,7 @@ const Page = () => {
         <section className="text-center mb-4">
           <h1 className="text-2xl font-semibold text-indigo-500 mb-2">フリーランスエンジニアのための案件掲示板</h1>
             <div className="max-w-screen-xl mx-auto px-4 py-3 text-grey-500 md:px-8 flex flex-col items-center text-center">
-              <div className="flex items-center gap-x-4">
+              <div className="flex items-center gap-x-4 bg-indigo-200 rounded-lg px-2">
                 <div className="w-8 h-8 flex-none rounded-lg bg-indigo-400 flex items-center justify-center">
                   <svg className="w-5 h-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" />
@@ -78,15 +90,6 @@ const Page = () => {
                   新規登録&スキルシート提出等で案件決定時に最大15,000円を還元します。
                   <a href="#" className="underline duration-150 text-gray-800 hover:text-grey-200"> 詳細はこちら</a>
                 </p>
-                {/* <ul className="text-sm list-disc list-inside text-gray-800 space-y-2">
-                  <li>無料で登録できます。</li>
-                  <li>
-                    ユーザーの貢献度（新規登録、スキルシート提出など）に応じてランクが付与されます。
-                  </li>
-                  <li>
-                    ランクに応じて、案件決定時に最大15,000円の報酬を追加でお支払いします。
-                  </li>
-                </ul>                 */}
               </div>
             </div>
         </section>
@@ -113,40 +116,83 @@ const Page = () => {
             ))}
           </div>
 
-          {/* 選択肢のリスト */}
-          <div
-            className={`flex flex-wrap gap-3 justify-center mb-6 text-sm transition-all duration-500 overflow-hidden`}
-            style={{
-              maxHeight: showAll ? "1000px" : "200px", // 高さを制御（例）
-            }}
-          >
-            {displayItems.map((item) => (
-              <label key={item} className="flex items-center space-x-1">
-                <input type="checkbox" />
-                <span>{item}</span>
-              </label>
-            ))}
-            {options[category].length > 6 && (
-              <button
+          {/* 選択肢のリスト（バッジ＋検索ボタン） */}
+          <div ref={ref} className="max-w-md mx-auto text-sm mb-6 relative">
+            <div className="flex items-center border rounded px-3 py-2 bg-white">
+              {/* バッジ＋トグルエリア */}
+              <div
+                className="flex flex-wrap items-center gap-2 flex-1 cursor-pointer"
                 onClick={() => setShowAll(!showAll)}
-                className="text-blue-500 underline w-full text-center"
               >
-                {showAll ? "閉じる" : "…もっと見る"}
+                {search.trim().length > 0 ? (
+                  search
+                    .split(" ")
+                    .filter(Boolean)
+                    .map((item) => (
+                      <span
+                        key={item}
+                        className="flex items-center gap-1 text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full text-sm"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {item}
+                        <button
+                          className="text-indigo-600 hover:text-red-500"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSearch((prev) =>
+                              prev
+                                .split(" ")
+                                .filter((i) => i !== item)
+                                .join(" ")
+                            );
+                          }}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))
+                ) : (
+                  <span className="text-gray-400">選択してください</span>
+                )}
+                {/* ▼トグルアイコンは常時表示 */}
+                <span className="ml-2 text-gray-500 text-sm">▼</span>
+              </div>
+
+              {/* 検索ボタン */}
+              <button className="ml-3 bg-indigo-400 text-white px-4 py-1 rounded">
+                検索
               </button>
+            </div>
+
+            {/* 選択肢一覧（クリックでトグル） */}
+            {showAll && (
+              <div className="absolute z-10 w-full bg-white border mt-1 rounded shadow max-h-60 overflow-auto">
+                <div className="grid grid-cols-2 gap-2 p-3">
+                  {options[category].map((item) => {
+                    const selectedItems = search.split(" ").filter(Boolean);
+                    const isSelected = selectedItems.includes(item);
+                    return (
+                      <button
+                        key={item}
+                        onClick={() => {
+                          setSearch((prev) => {
+                            const items = prev.split(" ").filter(Boolean);
+                            return isSelected
+                              ? items.filter((i) => i !== item).join(" ")
+                              : [...items, item].join(" ");
+                          });
+                        }}
+                        className={`text-left rounded px-2 py-1 ${
+                          isSelected ? "bg-indigo-100 text-indigo-600" : "hover:bg-gray-100"
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
-          </div>
-
-
-          {/* 検索フォーム */}
-          <div className="flex justify-center mb-8">
-            <input
-              type="text"
-              placeholder="PHP JavaScript"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="border border-gray-300 px-3 py-2 rounded-l"
-            />
-            <button className="bg-indigo-400 text-white px-4 rounded-r">検索</button>
           </div>
         </section>
 
@@ -167,7 +213,7 @@ const Page = () => {
               <p className="text-sm text-gray-500 mb-2">応募スキル</p>
               <div className="flex gap-2 flex-wrap">
                 {job.skill.map((s) => (
-                  <span key={s} className="bg-blue-100 px-2 py-1 text-xs rounded">{s}</span>
+                  <span key={s} className="bg-indigo-100 text-indigo-600 px-2 py-1 text-xs rounded">{s}</span>
                 ))}
               </div>
             </div>
@@ -183,6 +229,9 @@ const Page = () => {
           <span className="px-3">…</span>
           <button className="px-3 py-1 border">100</button>
         </div>
+        <footer>
+
+        </footer>
       </div>
     </main>
   );
