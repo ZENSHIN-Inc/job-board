@@ -32,10 +32,6 @@ const Page = () => {
     };
   }, []);
 
-  const displayItems = showAll
-  ? options[category]
-  : options[category].slice(0, 6);
-
   useEffect(() => {
     const fetchUser = async () => {
       const { data, error } = await supabase.auth.getUser();
