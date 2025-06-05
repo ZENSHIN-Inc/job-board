@@ -155,7 +155,13 @@ const Page = () => {
 
       const areaMatch =
         selectedAreas.length === 0 ||
-        selectedAreas.includes(project.prefecture ?? "");
+        selectedAreas.some((area) => {
+          if (area === "フルリモート") {
+            return project.work_style?.includes("フルリモート");
+          } else {
+            return project.prefecture?.includes(area);
+          }
+        });
 
       const priceMatch =
         selectedPrices.length === 0 ||
