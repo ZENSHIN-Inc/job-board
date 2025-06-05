@@ -21,12 +21,13 @@ const Page = () => {
   const [positionOptions, setPositionOptions] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedPositions, setSelectedPositions] = useState<string[]>([]);
-
+  const [selectedPrices, setSelectedPrices] = useState<string[]>([]);
+  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
 
   const options = {
     skill: skillOptions,
     position: positionOptions,  
-    area: ['東京', 'フルリモート', 'その他'],
+    area: ['東京', '大阪', 'フルリモート'],
     price: ['70万～', '80万～', '90万～', '100万～']
   };
 
@@ -129,11 +130,9 @@ const Page = () => {
       .select(`
         *,
         project_skills (
-          skill_id,
           skills ( name )
         ),
         project_positions (
-          position_id,
           positions ( name )
         )
       `);
@@ -146,18 +145,31 @@ const Page = () => {
     const typedData = data as ProjectWithSkillsAndPositions[];
 
     const filtered = typedData.filter((project) => {
-      // AND条件でスキルチェック
       const skillMatch = selectedSkills.every((skill) =>
         project.project_skills?.some((ps) => ps.skills?.name === skill)
       );
 
-      // AND条件でポジションチェック
       const positionMatch = selectedPositions.every((position) =>
         project.project_positions?.some((pp) => pp.positions?.name === position)
       );
 
-      // どちらも条件がある場合は両方満たす
-      return skillMatch && positionMatch;
+      const areaMatch =
+        selectedAreas.length === 0 ||
+        selectedAreas.includes(project.prefecture ?? "");
+
+      const priceMatch =
+        selectedPrices.length === 0 ||
+        selectedPrices.every((price) => {
+          const numericPrice = project.unit_price ?? 0;
+
+          if (price === "70万～") return numericPrice >= 70;
+          if (price === "80万～") return numericPrice >= 80;
+          if (price === "90万～") return numericPrice >= 90;
+          if (price === "100万～") return numericPrice >= 100;
+          return true;
+        });
+
+      return skillMatch && positionMatch && areaMatch && priceMatch;
     });
 
     const parsed = filtered.map((project) => ({
@@ -172,8 +184,6 @@ const Page = () => {
 
     setProjects(parsed);
   };
-
-
 
   return (
     <main className="bg-[#E6F0F8]">
@@ -243,39 +253,43 @@ const Page = () => {
           <div ref={ref} className="max-w-md mx-auto text-sm mb-6 relative">
             <div className="flex items-center border rounded px-3 py-2 bg-white">
               {/* バッジ＋トグルエリア */}
-              <div
-                className="flex flex-wrap items-center gap-2 flex-1 cursor-pointer"
-                onClick={() => setShowAll(!showAll)}
-              >
-              {[...selectedSkills, ...selectedPositions].length > 0 ? (
-                [...selectedSkills, ...selectedPositions].map((item) => (
-                  <span
-                    key={item}
-                    className="flex items-center gap-1 text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full text-sm"
-                    onClick={(e) => e.stopPropagation()}
+          <div
+            className="flex flex-wrap items-center gap-2 flex-1 cursor-pointer"
+            onClick={() => setShowAll(!showAll)}
+          >
+            {[...selectedSkills, ...selectedPositions, ...selectedAreas, ...selectedPrices].length > 0 ? (
+              [...selectedSkills, ...selectedPositions, ...selectedAreas, ...selectedPrices].map((item) => (
+                <span
+                  key={item}
+                  className="flex items-center gap-1 text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full text-sm"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {item}
+                  <button
+                    className="text-indigo-600 hover:text-red-500"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (selectedSkills.includes(item)) {
+                        setSelectedSkills((prev) => prev.filter((i) => i !== item));
+                      } else if (selectedPositions.includes(item)) {
+                        setSelectedPositions((prev) => prev.filter((i) => i !== item));
+                      } else if (selectedAreas.includes(item)) {
+                        setSelectedAreas((prev) => prev.filter((i) => i !== item));
+                      } else if (selectedPrices.includes(item)) {
+                        setSelectedPrices((prev) => prev.filter((i) => i !== item));
+                      }
+                    }}
                   >
-                    {item}
-                    <button
-                      className="text-indigo-600 hover:text-red-500"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (selectedSkills.includes(item)) {
-                          setSelectedSkills((prev) => prev.filter((i) => i !== item));
-                        } else if (selectedPositions.includes(item)) {
-                          setSelectedPositions((prev) => prev.filter((i) => i !== item));
-                        }
-                      }}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))
-              ) : (
-                <span className="text-gray-400">選択してください</span>
-              )}
-                {/* ▼トグルアイコンは常時表示 */}
-                <span className="ml-2 text-gray-500 text-sm">▼</span>
-              </div>
+                    ×
+                  </button>
+                </span>
+              ))
+            ) : (
+              <span className="text-gray-400">選択してください</span>
+            )}
+            <span className="ml-2 text-gray-500 text-sm">▼</span>
+          </div>
+
 
               {/* 検索ボタン */}
               <button className="ml-3 bg-indigo-500 text-white px-4 py-1 rounded hover:bg-indigo-600" onClick={handleSearch}>
@@ -294,6 +308,10 @@ const Page = () => {
                         ? selectedSkills.includes(item)
                         : category === "position"
                         ? selectedPositions.includes(item)
+                        : category === "area"
+                        ? selectedAreas.includes(item)
+                        : category === "price"
+                        ? selectedPrices.includes(item)
                         : false;
 
                     return (
@@ -308,11 +326,17 @@ const Page = () => {
                           setSelectedPositions((prev) =>
                             isSelected ? prev.filter((i) => i !== item) : [...prev, item]
                           );
+                        } else if (category === "price") {
+                          setSelectedPrices((prev) =>
+                            isSelected ? prev.filter((i) => i !== item) : [...prev, item]
+                          );
+                        } else if (category === "area") {
+                          setSelectedAreas((prev) =>
+                            isSelected ? prev.filter((i) => i !== item) : [...prev, item]
+                          );
                         }
                       }}
-                      className={`text-left rounded px-2 py-1 ${
-                        isSelected ? "bg-indigo-100 text-indigo-600" : "hover:bg-gray-100"
-                      }`}
+
                     >
                         {item}
                       </button>
