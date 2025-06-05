@@ -119,6 +119,54 @@ const Page = () => {
     router.refresh(); // 状態を再読み込み
   };
 
+  const handleSearch = async () => {
+    const selectedSkills = search.split(" ").filter(Boolean);
+    if (category !== "skill" || selectedSkills.length === 0) return;
+
+    const { data, error } = await supabase
+      .from("projects")
+      .select(`
+        project_id,
+        project_name,
+        unit_price,
+        prefecture,
+        work_style,
+        project_skills (
+          skill_id,
+          skills ( name )
+        ),
+        project_positions (
+          positions ( name )
+        )
+      `);
+
+    if (error) {
+      console.error("検索エラー:", error.message);
+      return;
+    }
+
+    // スキル名でフィルタリング（フロント側で絞り込み）
+    const filtered = data.filter((project: any) =>
+      project.project_skills.some((ps: any) =>
+        selectedSkills.includes(ps.skills?.name)
+      )
+    );
+
+    // 表示用整形
+    const parsed = filtered.map((project: any) => ({
+      project_id: project.project_id,
+      project_name: project.project_name,
+      unit_price: project.unit_price,
+      prefecture: project.prefecture,
+      work_style: project.work_style,
+      skills: project.project_skills.map((ps: any) => ps.skills.name),
+      positions: project.project_positions.map((pp: any) => pp.positions.name),
+    }));
+
+    setProjects(parsed);
+  };
+
+
   return (
     <main className="bg-[#E6F0F8]">
       <div className="max-w-[1200px] mx-auto px-4">
@@ -226,7 +274,7 @@ const Page = () => {
               </div>
 
               {/* 検索ボタン */}
-              <button className="ml-3 bg-indigo-500 text-white px-4 py-1 rounded hover:bg-indigo-600">
+              <button className="ml-3 bg-indigo-500 text-white px-4 py-1 rounded hover:bg-indigo-600" onClick={handleSearch}>
                 検索
               </button>
             </div>
@@ -292,7 +340,7 @@ const Page = () => {
               <div className="mt-auto text-right">
                 <Link
                   href={`/projects/${job.project_id}`}
-                  className="text-sm text-indigo-600 hover:underline"
+                  className="text-sm font-semibold text-indigo-600 hover:underline"
                 >
                   view more →
                 </Link>
