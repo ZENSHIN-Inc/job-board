@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/app/lib/supabase';
-import { useRouter } from 'next/navigation'; // 追加
+import { useRouter } from 'next/navigation';
+import type { ProjectWithSkillsAndPositions } from "@/types/project";
 
 const Page = () => {
   const [search, setSearch] = useState('');
@@ -13,7 +14,7 @@ const Page = () => {
   const router = useRouter(); // 追加
   const ref = useRef<HTMLDivElement>(null); // ← 選択ボックスのref
   const [projects, setProjects] = useState<
-    { project_id: string; project_name: string; unit_price: string; skills: string[]; prefecture: string; positions: string[]; work_style: string }[]
+    { project_id: string; project_name: string; unit_price: number; skills: string[]; prefecture: string; positions: string[]; work_style: string }[]
   >([]);
 
   const [skillOptions, setSkillOptions] = useState<string[]>([]);
@@ -126,41 +127,40 @@ const Page = () => {
     const { data, error } = await supabase
       .from("projects")
       .select(`
-        project_id,
-        project_name,
-        unit_price,
-        prefecture,
-        work_style,
+        *,
         project_skills (
           skill_id,
-          skills ( name )
+          skills (
+            id,
+            name
+          )
         ),
         project_positions (
           positions ( name )
         )
       `);
 
-    if (error) {
-      console.error("検索エラー:", error.message);
+    if (error || !data) {
+      console.error("検索エラー:", error?.message);
       return;
     }
 
-    // スキル名でフィルタリング（フロント側で絞り込み）
-    const filtered = data.filter((project: any) =>
-      project.project_skills.some((ps: any) =>
-        selectedSkills.includes(ps.skills?.name)
+    const typedData = data as ProjectWithSkillsAndPositions[]; // ✅ 型を適用
+
+    const filtered = typedData.filter((project) =>
+      selectedSkills.every((selected) =>
+        project.project_skills?.some((ps) => ps.skills?.name === selected)
       )
     );
 
-    // 表示用整形
-    const parsed = filtered.map((project: any) => ({
+    const parsed = filtered.map((project) => ({
       project_id: project.project_id,
       project_name: project.project_name,
-      unit_price: project.unit_price,
-      prefecture: project.prefecture,
-      work_style: project.work_style,
-      skills: project.project_skills.map((ps: any) => ps.skills.name),
-      positions: project.project_positions.map((pp: any) => pp.positions.name),
+      unit_price: project.unit_price ?? 0,
+      prefecture: project.prefecture ?? "",
+      work_style: project.work_style ?? "",
+      skills: project.project_skills?.map((ps) => ps.skills?.name ?? "") ?? [],
+      positions: project.project_positions?.map((pp: any) => pp.positions?.name ?? "") ?? [],
     }));
 
     setProjects(parsed);
