@@ -12,13 +12,44 @@ const Page = () => {
   const [user, setUser] = useState<any>(null); // ログイン中ユーザー
   const router = useRouter(); // 追加
   const ref = useRef<HTMLDivElement>(null); // ← 選択ボックスのref
+  const [projects, setProjects] = useState<
+    { project_id: string; project_name: string; unit_price: string; skills: string[] }[]
+  >([]);
+
+  const [skillOptions, setSkillOptions] = useState<string[]>([]);
+  const [positionOptions, setPositionOptions] = useState<string[]>([]);
 
   const options = {
-    skill: ['Unity', 'XD', 'Figma', 'illustrator', 'Photoshop', 'GraphQL', 'Jenkins', 'bootstrap', 'UI/UX', 'Apache Kafka', 'Apache Camel'],
-    position: ['PM', 'SE', 'フロントエンド', 'バックエンド', 'インフラ', 'QA', 'コンサル', 'SAP'],
+    skill: skillOptions,
+    position: positionOptions,  
     area: ['東京', '大阪', '名古屋', '福岡', '札幌', 'リモート', 'その他'],
     price: ['50万～', '60万～', '70万～', '80万～', '90万～', '100万～']
   };
+
+  useEffect(() => {
+    // skills テーブルからスキル一覧を取得
+    const fetchSkills = async () => {
+      const { data, error } = await supabase.from("skills").select("name");
+      if (error) {
+        console.error("スキル取得エラー:", error);
+        return;
+      }
+      setSkillOptions(data.map((skill) => skill.name));
+    };
+
+    // positions テーブルからポジション一覧を取得
+    const fetchPositions = async () => {
+      const { data, error } = await supabase.from("positions").select("name");
+      if (error) {
+        console.error("ポジション取得エラー:", error);
+        return;
+      }
+      setPositionOptions(data.map((pos) => pos.name));
+    };
+
+    fetchSkills();
+    fetchPositions();
+  }, []);
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -40,6 +71,40 @@ const Page = () => {
       }
     };
     fetchUser();
+  }, []);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          project_id,
+          project_name,
+          unit_price,
+          project_skills (
+            skills (
+              name
+            )
+          )
+        `);
+
+      if (error) {
+        console.error('プロジェクト取得エラー:', error.message);
+        return;
+      }
+
+      // スキル名だけ抽出
+      const parsed = data.map((project: any) => ({
+        project_id: project.project_id,
+        project_name: project.project_name,
+        unit_price: project.unit_price,
+        skills: project.project_skills.map((ps: any) => ps.skills.name),
+      }));
+
+      setProjects(parsed);
+    };
+
+    fetchProjects();
   }, []);
 
   const handleLogout = async () => {
@@ -195,23 +260,13 @@ const Page = () => {
         <div className="text-sm mb-4">案件数：604件</div>
 
         <div className="grid md:grid-cols-3 gap-4">
-          {[
-            { title: '運送会社向けDXサービス新規構築', reward: '〜100万', skill: ['PHP'] },
-            { title: '電子決済サービス開発', reward: '〜80万', skill: ['PHP'] },
-            { title: '充電電池とシェアリングサービスのシステム開発の案件', reward: '〜60万', skill: ['PHP'] },
-            { title: 'PHP開発案件', reward: '〜65万', skill: ['PHP', 'MySQL'] },
-            { title: '中学校・高校向け授業管理システムの開発', reward: '〜60万', skill: ['PHP', 'SQL'] },
-            { title: 'お客様向けサービスのPOSシステムのインフラ構築支援', reward: '〜65万', skill: ['PHP'] },
-            { title: 'PHP開発案件', reward: '〜65万', skill: ['PHP', 'MySQL'] },
-            { title: '中学校・高校向け授業管理システムの開発', reward: '〜60万', skill: ['PHP', 'SQL'] },
-            { title: 'お客様向けサービスのPOSシステムのインフラ構築支援', reward: '〜65万', skill: ['PHP'] },
-          ].map((job, idx) => (
-            <div key={idx} className="border p-4 rounded-lg shadow-sm bg-white">
-              <h3 className="font-semibold text-base mb-1">{job.title}</h3>
-              <p className="text-gray-500 text-sm mb-1">単価/月　{job.reward}</p>
+          {projects.map((job) => (
+            <div key={job.project_id} className="border p-4 rounded-lg shadow-sm bg-white">
+              <h3 className="font-semibold text-base mb-1">{job.project_name}</h3>
+              <p className="text-gray-500 text-sm mb-1">単価/月　{job.unit_price}</p>
               <p className="text-sm text-gray-500 mb-2">応募スキル</p>
               <div className="flex gap-2 flex-wrap">
-                {job.skill.map((s) => (
+                {job.skills.map((s) => (
                   <span key={s} className="bg-indigo-100 text-indigo-600 px-2 py-1 text-xs rounded">{s}</span>
                 ))}
               </div>

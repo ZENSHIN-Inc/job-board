@@ -31,8 +31,10 @@ export default function LoginPage() {
 
   return (
     <main className="bg-[#E6F0F8]">
-      <div className="max-w-md mx-auto mt-20 px-4">
-        <h1 className="text-2xl font-bold mb-6 text-center">ログイン</h1>
+      <div className="max-w-md mx-auto px-4">
+        <header className="flex justify-between items-center py-3">
+        </header>
+        <h1 className="text-2xl font-bold mb-6 text-indigo-500 text-center">ログイン</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm mb-1">メールアドレス</label>
@@ -58,13 +60,15 @@ export default function LoginPage() {
           </div>
           <button
             type="submit"
-            className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-700"
+            className="w-full py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
           >
             ログインする
           </button>
         </form>
         {message && <p className="mt-4 text-center text-sm text-red-500">{message}</p>}
       </div>
+      <footer className="flex justify-between items-center py-3">
+      </footer>
     </main>
   );
 }
