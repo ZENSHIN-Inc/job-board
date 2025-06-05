@@ -13,7 +13,7 @@ const Page = () => {
   const router = useRouter(); // 追加
   const ref = useRef<HTMLDivElement>(null); // ← 選択ボックスのref
   const [projects, setProjects] = useState<
-    { project_id: string; project_name: string; unit_price: string; skills: string[] }[]
+    { project_id: string; project_name: string; unit_price: string; skills: string[]; prefecture: string; positions: string[]; work_style: string }[]
   >([]);
 
   const [skillOptions, setSkillOptions] = useState<string[]>([]);
@@ -22,8 +22,8 @@ const Page = () => {
   const options = {
     skill: skillOptions,
     position: positionOptions,  
-    area: ['東京', '大阪', '名古屋', '福岡', '札幌', 'リモート', 'その他'],
-    price: ['50万～', '60万～', '70万～', '80万～', '90万～', '100万～']
+    area: ['東京', 'フルリモート', 'その他'],
+    price: ['70万～', '80万～', '90万～', '100万～']
   };
 
   useEffect(() => {
@@ -81,10 +81,13 @@ const Page = () => {
           project_id,
           project_name,
           unit_price,
+          prefecture,
+          work_style,
           project_skills (
-            skills (
-              name
-            )
+            skills ( name )
+          ),
+          project_positions (
+            positions ( name )
           )
         `);
 
@@ -98,7 +101,10 @@ const Page = () => {
         project_id: project.project_id,
         project_name: project.project_name,
         unit_price: project.unit_price,
+        prefecture: project.prefecture,
+        work_style: project.work_style,
         skills: project.project_skills.map((ps: any) => ps.skills.name),
+        positions: project.project_positions.map((pp: any) => pp.positions.name),
       }));
 
       setProjects(parsed);
@@ -261,14 +267,35 @@ const Page = () => {
 
         <div className="grid md:grid-cols-3 gap-4">
           {projects.map((job) => (
-            <div key={job.project_id} className="border p-4 rounded-lg shadow-sm bg-white">
-              <h3 className="font-semibold text-base mb-1">{job.project_name}</h3>
-              <p className="text-gray-500 text-sm mb-1">単価/月　{job.unit_price}</p>
-              <p className="text-sm text-gray-500 mb-2">応募スキル</p>
-              <div className="flex gap-2 flex-wrap">
-                {job.skills.map((s) => (
-                  <span key={s} className="bg-indigo-100 text-indigo-600 px-2 py-1 text-xs rounded">{s}</span>
-                ))}
+            <div key={job.project_id} className="border p-4 rounded-lg shadow-sm bg-white flex flex-col justify-between">
+              <div>
+                <h3 className="font-semibold text-base mb-1">{job.project_name}</h3>
+                <p className="text-gray-500 text-sm mb-1">単価/月 : {job.unit_price}万円</p>
+                <p className="text-gray-500 text-sm mb-1">勤務地 : {job.prefecture}</p>
+                <p className="text-gray-500 text-sm mb-1">働き方 : {job.work_style}</p>
+                <p className="text-sm text-gray-500 mb-2">スキル・ポジション : </p>
+                <div className="flex gap-2 flex-wrap mb-3">
+                  {job.skills.map((s) => (
+                    <span key={`skill-${s}`} className="bg-blue-100 text-blue-600 px-2 py-1 text-xs rounded">
+                      {s}
+                    </span>
+                  ))}
+                  {job.positions.map((p) => (
+                    <span key={`position-${p}`} className="bg-green-100 text-green-600 px-2 py-1 text-xs rounded">
+                      {p}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* ↓ 「view more →」リンクを追加 */}
+              <div className="mt-auto text-right">
+                <Link
+                  href={`/projects/${job.project_id}`}
+                  className="text-sm text-indigo-600 hover:underline"
+                >
+                  view more →
+                </Link>
               </div>
             </div>
           ))}
