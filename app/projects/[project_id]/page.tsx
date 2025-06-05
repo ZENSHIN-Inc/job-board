@@ -1,5 +1,7 @@
 import { supabase } from "@/app/lib/supabase";
 import { notFound } from "next/navigation";
+import ClientApplyButton from "./ClientApplyButton";
+
 import Link from "next/link";
 import type { ProjectWithSkillsAndPositions } from "@/types/project";
 
@@ -91,12 +93,8 @@ export default async function ProjectDetailPage({ params }: Props) {
           </section>
 
           <div className="p-4">
-            <Link
-              href="/signup"
-              className="block w-full rounded bg-indigo-500 py-2 text-center text-white hover:bg-indigo-600"
-            >
-              新規登録して応募する
-            </Link>
+
+            <ClientApplyButton projectId={project.project_id} />
           </div>
         </div>
       </div>

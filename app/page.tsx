@@ -199,10 +199,10 @@ const Page = () => {
           <div className="space-x-4 text-sm">
             {user ? (
               <>
-                <span className="text-teal-600">{user.email}</span>
+                <span className="font-semibold">{user.email}</span>
                 <button
                   onClick={handleLogout}
-                  className="text-red-500 hover:underline ml-2"
+                  className="font-semibold hover:underline ml-2"
                 >
                   ログアウト
                 </button>
