@@ -10,8 +10,8 @@ const Page = () => {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<"skill" | "position" | "area" | "price">("skill");
   const [showAll, setShowAll] = useState(false);
-  const [user, setUser] = useState<any>(null); // ログイン中ユーザー
-  const router = useRouter(); // 追加
+  const [user, setUser] = useState<any>(null); 
+  const router = useRouter(); 
   const ref = useRef<HTMLDivElement>(null); // ← 選択ボックスのref
   const [projects, setProjects] = useState<
     { project_id: string; project_name: string; unit_price: number; skills: string[]; prefecture: string; positions: string[]; work_style: string }[]

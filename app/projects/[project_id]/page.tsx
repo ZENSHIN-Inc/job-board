@@ -1,69 +1,113 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import { notFound } from 'next/navigation';
+import { supabase } from "@/app/lib/supabase";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import type { ProjectWithSkillsAndPositions } from "@/types/project";
 
-// SSRを強制して同期的にparamsやcookiesを扱えるようにする
-export const dynamic = 'force-dynamic';
-
-export default async function ProjectDetailPage({
-  params,
-}: {
+type Props = {
   params: { project_id: string };
-}) {
-  console.log(params)
-  const cookieStore = cookies(); // 🔑 クッキーを取得
-  const supabase = createServerComponentClient({ cookies: () => cookieStore });
+};
 
-  const { data, error } = await supabase
-    .from('projects')
-    .select(`
-      project_name,
-      unit_price,
-      prefecture,
-      work_style,
-      description,
-      project_skills (
-        skills ( name )
-      ),
+export async function generateStaticParams() {
+  const { data } = await supabase.from("projects").select("project_id");
+  return (data ?? []).map((p) => ({ project_id: p.project_id }));
+}
+
+export default async function ProjectDetailPage({ params }: Props) {
+  const { project_id } = await params;
+
+  const { data: project, error } = await supabase
+    .from("projects")
+    .select(
+      `
+      *,
       project_positions (
-        positions ( name )
+        positions (
+          id,
+          name
+        )
       )
-    `)
-    .eq('project_id', params.project_id)
-    .single();
+    `
+    )
+    .eq("project_id", project_id)
+    .single<ProjectWithSkillsAndPositions>();
 
-  if (error || !data) {
-    notFound(); // 404 ページへ
-  }
-
-  const skills = data.project_skills.map((ps: any) => ps.skills.name);
-  const positions = data.project_positions.map((pp: any) => pp.positions.name);
+  if (!project || error) notFound();
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-4">{data.project_name}</h1>
-      <p className="text-gray-600 mb-2">単価: {data.unit_price} 万円/月</p>
-      <p className="text-gray-600 mb-2">勤務地: {data.prefecture}</p>
-      <p className="text-gray-600 mb-2">働き方: {data.work_style}</p>
-      <p className="text-gray-600 mb-4 whitespace-pre-wrap">{data.description}</p>
+    <main className="bg-[#E6F0F8]">
+      <div className="max-w-[1200px] mx-auto px-4">
+        <header className="py-4">
+          <div className="text-lg font-semibold">ZENSHIN Freelance</div>
+        </header>
+        <div className="bg-white rounded p-4">
+          <h1 className="text-lg font-semibold">{project.project_name}</h1>
+          <div className="h-1 w-full bg-indigo-300" />
 
-      <h2 className="font-semibold mb-2">必要なスキル</h2>
-      <div className="flex gap-2 flex-wrap mb-4">
-        {skills.map((s: string) => (
-          <span key={s} className="bg-blue-100 text-blue-600 px-2 py-1 text-xs rounded">
-            {s}
-          </span>
-        ))}
-      </div>
+          <section className="grid grid-cols-1 md:grid-cols-4 text-sm border-b border-gray-200 py-2">
+            {/* 左側 */}
+            <div className="md:col-span-2 grid grid-cols-[96px_1fr] pm-2">
+              <LabelCell>単価</LabelCell>
+              <div className="p-3">
+                {project.unit_price ? `〜${project.unit_price}万円` : "非公開"}
+              </div>
 
-      <h2 className="font-semibold mb-2">ポジション</h2>
-      <div className="flex gap-2 flex-wrap mb-4">
-        {positions.map((p: string) => (
-          <span key={p} className="bg-green-100 text-green-600 px-2 py-1 text-xs rounded">
-            {p}
-          </span>
-        ))}
+              <LabelCell>案件概要</LabelCell>
+              <div className="p-3 whitespace-pre-line">
+                {project.description ?? "—"}
+              </div>
+
+              <LabelCell>募集ポジション</LabelCell>
+              <div className="p-3">
+                {project.project_positions && project.project_positions.length > 0
+                  ? project.project_positions
+                      .map((pp) => pp.positions?.name)
+                      .filter(Boolean)
+                      .join("、")
+                  : "—"}
+              </div>
+
+              <LabelCell>稼働開始日</LabelCell>
+              <div className="p-3">{project.start_date ?? "—"}</div>
+            </div>
+
+            {/* 右側 */}
+            <div className="md:col-span-2 grid grid-cols-[96px_1fr] border-t md:border-t-0 md:border-l border-gray-200">
+              <LabelCell>場所</LabelCell>
+              <div className="p-3">{project.location ?? "—"}</div>
+
+              <LabelCell>働き方</LabelCell>
+              <div className="p-3">{project.work_style ?? "—"}</div>
+
+              <LabelCell>必須スキル</LabelCell>
+              <div className="p-3 whitespace-pre-line">
+                {project.required_skills ?? "—"}
+              </div>
+
+              <LabelCell>歓迎スキル</LabelCell>
+              <div className="p-3 whitespace-pre-line">
+                {project.preferred_skills ?? "—"}
+              </div>
+            </div>
+          </section>
+
+          <div className="p-4">
+            <Link
+              href="/signup"
+              className="block w-full rounded bg-indigo-500 py-2 text-center text-white hover:bg-indigo-600"
+            >
+              新規登録して応募する
+            </Link>
+          </div>
+        </div>
       </div>
     </main>
+  );
+}
+
+function LabelCell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-center bg-gray-200 px-2 py-3 text-xs font-semibold">
+      {children}
+    </div>
   );
 }
