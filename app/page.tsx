@@ -19,6 +19,9 @@ const Page = () => {
 
   const [skillOptions, setSkillOptions] = useState<string[]>([]);
   const [positionOptions, setPositionOptions] = useState<string[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedPositions, setSelectedPositions] = useState<string[]>([]);
+
 
   const options = {
     skill: skillOptions,
@@ -121,37 +124,41 @@ const Page = () => {
   };
 
   const handleSearch = async () => {
-    const selectedSkills = search.split(" ").filter(Boolean);
-    if (category !== "skill" || selectedSkills.length === 0) return;
-
     const { data, error } = await supabase
       .from("projects")
       .select(`
         *,
         project_skills (
           skill_id,
-          skills (
-            id,
-            name
-          )
+          skills ( name )
         ),
         project_positions (
+          position_id,
           positions ( name )
         )
       `);
 
     if (error || !data) {
-      console.error("検索エラー:", error?.message);
+      console.error("検索エラー:", error.message);
       return;
     }
 
-    const typedData = data as ProjectWithSkillsAndPositions[]; // ✅ 型を適用
+    const typedData = data as ProjectWithSkillsAndPositions[];
 
-    const filtered = typedData.filter((project) =>
-      selectedSkills.every((selected) =>
-        project.project_skills?.some((ps) => ps.skills?.name === selected)
-      )
-    );
+    const filtered = typedData.filter((project) => {
+      // AND条件でスキルチェック
+      const skillMatch = selectedSkills.every((skill) =>
+        project.project_skills?.some((ps) => ps.skills?.name === skill)
+      );
+
+      // AND条件でポジションチェック
+      const positionMatch = selectedPositions.every((position) =>
+        project.project_positions?.some((pp) => pp.positions?.name === position)
+      );
+
+      // どちらも条件がある場合は両方満たす
+      return skillMatch && positionMatch;
+    });
 
     const parsed = filtered.map((project) => ({
       project_id: project.project_id,
@@ -160,11 +167,12 @@ const Page = () => {
       prefecture: project.prefecture ?? "",
       work_style: project.work_style ?? "",
       skills: project.project_skills?.map((ps) => ps.skills?.name ?? "") ?? [],
-      positions: project.project_positions?.map((pp: any) => pp.positions?.name ?? "") ?? [],
+      positions: project.project_positions?.map((pp) => pp.positions?.name ?? "") ?? [],
     }));
 
     setProjects(parsed);
   };
+
 
 
   return (
@@ -239,36 +247,32 @@ const Page = () => {
                 className="flex flex-wrap items-center gap-2 flex-1 cursor-pointer"
                 onClick={() => setShowAll(!showAll)}
               >
-                {search.trim().length > 0 ? (
-                  search
-                    .split(" ")
-                    .filter(Boolean)
-                    .map((item) => (
-                      <span
-                        key={item}
-                        className="flex items-center gap-1 text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full text-sm"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {item}
-                        <button
-                          className="text-indigo-600 hover:text-red-500"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSearch((prev) =>
-                              prev
-                                .split(" ")
-                                .filter((i) => i !== item)
-                                .join(" ")
-                            );
-                          }}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))
-                ) : (
-                  <span className="text-gray-400">選択してください</span>
-                )}
+              {[...selectedSkills, ...selectedPositions].length > 0 ? (
+                [...selectedSkills, ...selectedPositions].map((item) => (
+                  <span
+                    key={item}
+                    className="flex items-center gap-1 text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full text-sm"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {item}
+                    <button
+                      className="text-indigo-600 hover:text-red-500"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (selectedSkills.includes(item)) {
+                          setSelectedSkills((prev) => prev.filter((i) => i !== item));
+                        } else if (selectedPositions.includes(item)) {
+                          setSelectedPositions((prev) => prev.filter((i) => i !== item));
+                        }
+                      }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))
+              ) : (
+                <span className="text-gray-400">選択してください</span>
+              )}
                 {/* ▼トグルアイコンは常時表示 */}
                 <span className="ml-2 text-gray-500 text-sm">▼</span>
               </div>
@@ -285,22 +289,31 @@ const Page = () => {
                 <div className="grid grid-cols-2 gap-2 p-3">
                   {options[category].map((item) => {
                     const selectedItems = search.split(" ").filter(Boolean);
-                    const isSelected = selectedItems.includes(item);
+                    const isSelected =
+                      category === "skill"
+                        ? selectedSkills.includes(item)
+                        : category === "position"
+                        ? selectedPositions.includes(item)
+                        : false;
+
                     return (
-                      <button
-                        key={item}
-                        onClick={() => {
-                          setSearch((prev) => {
-                            const items = prev.split(" ").filter(Boolean);
-                            return isSelected
-                              ? items.filter((i) => i !== item).join(" ")
-                              : [...items, item].join(" ");
-                          });
-                        }}
-                        className={`text-left rounded px-2 py-1 ${
-                          isSelected ? "bg-indigo-100 text-indigo-600" : "hover:bg-gray-100"
-                        }`}
-                      >
+                    <button
+                      key={item}
+                      onClick={() => {
+                        if (category === "skill") {
+                          setSelectedSkills((prev) =>
+                            isSelected ? prev.filter((i) => i !== item) : [...prev, item]
+                          );
+                        } else if (category === "position") {
+                          setSelectedPositions((prev) =>
+                            isSelected ? prev.filter((i) => i !== item) : [...prev, item]
+                          );
+                        }
+                      }}
+                      className={`text-left rounded px-2 py-1 ${
+                        isSelected ? "bg-indigo-100 text-indigo-600" : "hover:bg-gray-100"
+                      }`}
+                    >
                         {item}
                       </button>
                     );
